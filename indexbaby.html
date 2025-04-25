@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baby Crib Monitoring System</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Login Container -->
+    <div id="auth-container" class="auth-container">
+        <h2>Baby Crib Monitor Login</h2>
+        <div id="auth-notification" class="notification hidden"></div>
+        <div id="login-form">
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Enter your email">
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password">
+            </div>
+            <button id="login-btn" onclick="login()">Sign In</button>
+            <div class="auth-links">
+                <a href="#" onclick="showSignup()">Create New Account</a>
+            </div>
+        </div>
+        
+        <div id="signup-form" class="hidden">
+            <div class="input-group">
+                <label for="signup-email">Email</label>
+                <input type="email" id="signup-email" placeholder="Enter your email">
+            </div>
+            <div class="input-group">
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" placeholder="Create a password">
+            </div>
+            <div class="input-group">
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" placeholder="Confirm your password">
+            </div>
+            <button onclick="signup()">Create Account</button>
+            <div class="auth-links">
+                <a href="#" onclick="showLogin()">Back to Login</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="container hidden">
+        <header>
+            <h1>Baby Crib Monitoring System</h1>
+            <div class="connection-status">
+                Connection: <span class="status-indicator" id="connection-status"></span>
+            </div>
+        </header>
+
+        <div id="dashboard-notification" class="notification hidden"></div>
+        <div id="status-message" class="status-message hidden"></div>
+
+        <div class="dashboard">
+            <!-- Environmental Sensors Card -->
+            <div class="card">
+                <h2>Environmental Sensors</h2>
+                <div class="sensor-data">
+                    <span>Temperature:</span>
+                    <span class="sensor-value"><span id="temperature">--</span>°C</span>
+                </div>
+                <div class="sensor-data">
+                    <span>Humidity:</span>
+                    <span class="sensor-value"><span id="humidity">--</span>%</span>
+                </div>
+                <div class="sensor-data">
+                    <span>Light Level:</span>
+                    <span class="sensor-value"><span id="light-level">--</span></span>
+                </div>
+            </div>
+
+            <!-- Security System Card -->
+            <div class="card">
+                <h2>Security System</h2>
+                <div class="sensor-data">
+                    <span>Distance:</span>
+                    <span class="sensor-value"><span id="distance">--</span> cm</span>
+                </div>
+                <div class="sensor-data">
+                    <span>Servo Position:</span>
+                    <span class="sensor-value"><span id="servo">--</span>°</span>
+                </div>
+                <div class="sensor-data">
+                    <span>Object Detected:</span>
+                    <span class="sensor-value"><span id="object">--</span></span>
+                </div>
+            </div>
+
+            <!-- Lighting Control Card -->
+            <div class="card">
+                <h2>Lighting Control</h2>
+                <div class="control-group">
+                    <div class="sensor-data">
+                        <span>Control Mode:</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="manual-mode" onchange="toggleControlMode()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-text">
+                        <span>Automatic</span>
+                        <span>Manual</span>
+                    </div>
+                    
+                    <div class="control-group" id="manual-controls">
+                        <div class="sensor-data">
+                            <span>LED Control:</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="led-control" onchange="toggleLED()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="switch-text">
+                            <span>OFF</span>
+                            <span>ON</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group" id="auto-controls">
+                        <label>Light Threshold:</label>
+                        <input type="range" id="light-threshold" min="0" max="4095" oninput="updateThreshold(this.value)">
+                        <div class="sensor-data">
+                            <span>Current Threshold:</span>
+                            <span class="sensor-value"><span id="threshold-value">300</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Status Card -->
+            <div class="card">
+                <h2>System Status</h2>
+                <div class="sensor-data">
+                    <span>Last Update:</span>
+                    <span class="sensor-value"><span id="last-update">--</span></span>
+                </div>
+                <div class="sensor-data">
+                    <span>LED State:</span>
+                    <span class="sensor-value"><span id="led-state">OFF</span></span>
+                </div>
+                <div class="sensor-data">
+                    <span>Control Mode:</span>
+                    <span class="sensor-value"><span id="control-mode">Automatic</span></span>
+                </div>
+                <button onclick="refreshData()">Refresh Data</button>
+                <button onclick="logout()" style="background-color: #e74c3c;">Logout</button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Baby Crib Monitoring System © 2025</p>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC_hE2Q4WNOFK-QPedmCrtB1T64Jxl5d3c",
+            authDomain: "test-2-baby-crib.firebaseapp.com",
+            databaseURL: "https://test-2-baby-crib-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "test-2-baby-crib",
+            storageBucket: "test-2-baby-crib.appspot.com",
+            messagingSenderId: "123456789012", // Replace with actual if available
+            appId: "1:123456789012:web:abc123def456" // Replace with actual if available
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // DOM Elements
+        const authContainer = document.getElementById('auth-container');
+        const dashboard = document.getElementById('dashboard');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const authNotification = document.getElementById('auth-notification');
+        const dashboardNotification = document.getElementById('dashboard-notification');
+        const statusMessage = document.getElementById('status-message');
+        
+        // Default values - these will be loaded into Firebase if not present
+        const defaultControls = {
+            manual_mode: false,
+            led_state: false,
+            light_threshold: 300
+        };
+
+        // Sample sensor data (for demonstration or testing)
+        const sampleData = {
+            temperature: 23.5,
+            humidity: 45,
+            distance: 120,
+            servo_position: 90,
+            object_detected: false,
+            light_level: 2048
+        };
+
+        // Initialize database if needed
+        function initializeDatabase() {
+            // Check if controls exist, if not create them
+            database.ref('controls').once('value', snapshot => {
+                if (!snapshot.exists()) {
+                    database.ref('controls').set(defaultControls)
+                        .then(() => console.log("Controls initialized"))
+                        .catch(error => console.error("Error initializing controls:", error));
+                }
+            });
+            
+            // For development/testing: You can uncomment this to simulate sensor data
+            /*
+            database.ref('latest').once('value', snapshot => {
+                if (!snapshot.exists()) {
+                    database.ref('latest').set(sampleData)
+                        .then(() => console.log("Sample data initialized"))
+                        .catch(error => console.error("Error initializing sample data:", error));
+                }
+            });
+            */
+        }
+
+        // Real-time Database Listeners
+        function setupDatabaseListeners() {
+            // Listen for sensor data updates
+            database.ref('latest').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    console.log("Sensor data received:", data);
+                    updateSensorDisplay(data);
+                    updateStatusIndicator("Data updated successfully", "success");
+                } else {
+                    console.warn("No sensor data available");
+                    updateStatusIndicator("No sensor data available. Check device connection.", "warning");
+                }
+            }, (error) => {
+                console.error("Error fetching sensor data:", error);
+                updateStatusIndicator("Error fetching data: " + error.message, "error");
+            });
+
+            // Listen for control settings updates
+            database.ref('controls').on('value', (snapshot) => {
+                const controls = snapshot.val();
+                if (controls) {
+                    console.log("Control settings received:", controls);
+                    updateControlElements(controls);
+                } else {
+                    console.warn("No control settings available");
+                    // Initialize with defaults if missing
+                    database.ref('controls').set(defaultControls);
+                }
+            }, (error) => {
+                console.error("Error fetching control settings:", error);
+                updateStatusIndicator("Error fetching control settings: " + error.message, "error");
+            });
+        }
+
+        // Update sensor display with data from Firebase
+        function updateSensorDisplay(data) {
+            if (typeof data.temperature !== 'undefined') document.getElementById('temperature').textContent = data.temperature.toFixed(1);
+            if (typeof data.humidity !== 'undefined') document.getElementById('humidity').textContent = data.humidity.toFixed(0);
+            if (typeof data.distance !== 'undefined') document.getElementById('distance').textContent = data.distance.toFixed(1);
+            if (typeof data.servo_position !== 'undefined') document.getElementById('servo').textContent = data.servo_position;
+            
+            if (typeof data.object_detected !== 'undefined') {
+                document.getElementById('object').textContent = data.object_detected ? 'Yes' : 'No';
+            }
+            
+            if (typeof data.light_level !== 'undefined') document.getElementById('light-level').textContent = data.light_level;
+            
+            document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+        }
+
+        // Update control interface elements based on Firebase data
+        function updateControlElements(controls) {
+            if (!controls) return;
+            
+            // Update LED control
+            if (typeof controls.led_state !== 'undefined') {
+                document.getElementById('led-control').checked = controls.led_state;
+                document.getElementById('led-state').textContent = controls.led_state ? 'ON' : 'OFF';
+            }
+            
+            // Update manual mode toggle
+            if (typeof controls.manual_mode !== 'undefined') {
+                document.getElementById('manual-mode').checked = controls.manual_mode;
+                document.getElementById('control-mode').textContent = controls.manual_mode ? 'Manual' : 'Automatic';
+                
+                // Toggle visibility of control sections
+                document.getElementById('manual-controls').style.display = controls.manual_mode ? 'block' : 'none';
+                document.getElementById('auto-controls').style.display = controls.manual_mode ? 'none' : 'block';
+            }
+            
+            // Update light threshold slider
+            if (typeof controls.light_threshold !== 'undefined') {
+                document.getElementById('light-threshold').value = controls.light_threshold;
+                document.getElementById('threshold-value').textContent = controls.light_threshold;
+            }
+        }
+
+        // Updates a fixed status indicator area instead of showing popups
+        function updateStatusIndicator(message, type) {
+            statusMessage.textContent = message;
+            
+            // Clear any existing classes
+            statusMessage.className = 'status-message';
+            
+            // Add appropriate styling class based on message type
+            statusMessage.classList.add(`status-${type}`);
+            statusMessage.classList.remove('hidden');
+            
+            // Automatically hide after 5 seconds
+            setTimeout(() => {
+                statusMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Control Functions
+        function toggleLED() {
+            const ledState = document.getElementById('led-control').checked;
+            database.ref('controls/led_state').set(ledState)
+                .then(() => console.log("LED state updated:", ledState))
+                .catch(error => {
+                    console.error("Error updating LED state:", error);
+                    updateStatusIndicator("Error updating LED: " + error.message, "error");
+                });
+        }
+
+        function toggleControlMode() {
+            const manualMode = document.getElementById('manual-mode').checked;
+            database.ref('controls/manual_mode').set(manualMode)
+                .then(() => console.log("Control mode updated:", manualMode ? "Manual" : "Automatic"))
+                .catch(error => {
+                    console.error("Error updating control mode:", error);
+                    updateStatusIndicator("Error updating mode: " + error.message, "error");
+                });
+        }
+
+        function updateThreshold(value) {
+            const threshold = parseInt(value);
+            database.ref('controls/light_threshold').set(threshold)
+                .then(() => console.log("Light threshold updated:", threshold))
+                .catch(error => {
+                    console.error("Error updating light threshold:", error);
+                    updateStatusIndicator("Error updating threshold: " + error.message, "error");
+                });
+        }
+
+        // Authentication Functions
+        function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showNotification("auth", "Please enter both email and password", "error");
+                return;
+            }
+            
+            // Show loading state
+            const loginBtn = document.getElementById('login-btn');
+            const originalText = loginBtn.textContent;
+            loginBtn.innerHTML = 'Signing In... <span class="loading"></span>';
+            loginBtn.disabled = true;
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    console.log("Login successful");
+                    authContainer.classList.add('hidden');
+                    dashboard.classList.remove('hidden');
+                    updateStatusIndicator("Login successful!", "success");
+                })
+                .catch(error => {
+                    console.error("Login error:", error);
+                    showNotification("auth", "Login failed: " + error.message, "error");
+                    
+                    // Reset button
+                    loginBtn.innerHTML = originalText;
+                    loginBtn.disabled = false;
+                });
+        }
+
+        function signup() {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (!email || !password) {
+                showNotification("auth", "Please enter both email and password", "error");
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showNotification("auth", "Passwords do not match", "error");
+                return;
+            }
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(() => {
+                    console.log("Account created successfully");
+                    showNotification("auth", "Account created! You can now log in.", "success");
+                    showLogin();
+                })
+                .catch(error => {
+                    console.error("Signup error:", error);
+                    showNotification("auth", "Signup failed: " + error.message, "error");
+                });
+        }
+
+        function logout() {
+            auth.signOut()
+                .then(() => {
+                    console.log("Logout successful");
+                    dashboard.classList.add('hidden');
+                    authContainer.classList.remove('hidden');
+                    showLogin();
+                })
+                .catch(error => {
+                    console.error("Logout error:", error);
+                    updateStatusIndicator("Logout failed: " + error.message, "error");
+                });
+        }
+
+        // Manually refresh data from Firebase
+        function refreshData() {
+            updateStatusIndicator("Refreshing data...", "warning");
+            
+            // Re-fetch latest data
+            database.ref('latest').once('value')
+                .then(snapshot => {
+                    const data = snapshot.val();
+                    if (data) {
+                        updateSensorDisplay(data);
+                        updateStatusIndicator("Data refreshed successfully", "success");
+                    } else {
+                        updateStatusIndicator("No sensor data available", "warning");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error refreshing data:", error);
+                    updateStatusIndicator("Error refreshing data: " + error.message, "error");
+                });
+                
+            // Re-fetch control settings
+            database.ref('controls').once('value')
+                .then(snapshot => {
+                    const controls = snapshot.val();
+                    if (controls) {
+                        updateControlElements(controls);
+                    } else {
+                        database.ref('controls').set(defaultControls);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error refreshing controls:", error);
+                });
+        }
+
+        // UI Helper Functions
+        function showLogin() {
+            loginForm.classList.remove('hidden');
+            signupForm.classList.add('hidden');
+        }
+
+        function showSignup() {
+            loginForm.classList.add('hidden');
+            signupForm.classList.remove('hidden');
+        }
+
+        function showNotification(context, message, type) {
+            const notification = context === "auth" ? authNotification : dashboardNotification;
+            
+            notification.textContent = message;
+            notification.className = "notification " + type;
+            notification.classList.remove('hidden');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Connection Monitoring
+        function setupConnectionMonitoring() {
+            database.ref('.info/connected').on('value', (snapshot) => {
+                const statusIndicator = document.getElementById('connection-status');
+                const isConnected = snapshot.val();
+                
+                if (isConnected) {
+                    statusIndicator.classList.remove('offline');
+                    statusIndicator.classList.add('online');
+                    console.log("Connected to Firebase");
+                } else {
+                    statusIndicator.classList.remove('online');
+                    statusIndicator.classList.add('offline');
+                    console.log("Disconnected from Firebase");
+                }
+            });
+        }
+
+        // Initialize the application
+        function init() {
+            // Set up authentication state change listener
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    console.log("User authenticated:", user.email);
+                    authContainer.classList.add('hidden');
+                    dashboard.classList.remove('hidden');
+                    
+                    // Initialize database and set up listeners
+                    initializeDatabase();
+                    setupDatabaseListeners();
+                    setupConnectionMonitoring();
+                } else {
+                    console.log("User not authenticated");
+                    dashboard.classList.add('hidden');
+                    authContainer.classList.remove('hidden');
+                }
+            });
+            
+            // Set up event listeners for enter key in auth forms
+            document.getElementById('email').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') login();
+            });
+            
+            document.getElementById('password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') login();
+            });
+        }
+
+        // Start the application when the page loads
+        window.onload = init;
+    </script>
+</body>
+</html>
