@@ -616,3 +616,35 @@
             color: white;
         }
    
+.servo-visual {
+  position: relative;
+  margin: 20px auto;
+  width: 100px;
+  height: 100px;
+}
+
+.servo-base {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-color: #555;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.servo-arm {
+  position: absolute;
+  width: 8px;
+  height: 60px;
+  background-color: #2196F3;
+  top: 50%;
+  left: 50%;
+  transform-origin: center bottom;
+  transform: translate(-50%, -100%) rotate(0deg);
+  border-radius: 4px;
+  z-index: 2;
+  transition: transform 0.5s ease-in-out;
+}
