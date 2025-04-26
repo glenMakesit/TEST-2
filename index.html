@@ -94,6 +94,11 @@
                     <span>Object Detected:</span>
                     <span class="sensor-value"><span id="object">--</span></span>
                 </div>
+                <!-- Add to Security System Card -->
+                <div class="servo-visual">
+                  <div class="servo-base"></div>
+                  <div id="servo-arm" class="servo-arm" style="transform: rotate(0deg)"></div>
+                </div>
             </div>
 
             <!-- Lighting Control Card -->
@@ -152,6 +157,11 @@
                     <span>Control Mode:</span>
                     <span class="sensor-value"><span id="control-mode">Automatic</span></span>
                 </div>
+                <!-- Add to System Status Card -->
+                <div class="sensor-data">
+                  <span>System State:</span>
+                  <span class="sensor-value" id="system-state">Normal</span>
+                </div>
                 <button onclick="refreshData()">Refresh Data</button>
                 <button onclick="logout()" style="background-color: #e74c3c;">Logout</button>
             </div>
@@ -202,7 +212,8 @@
             distance: 120,
             servo_position: 90,
             object_detected: false,
-            light_level: 2048
+            light_level: 2048,
+            state: 'Normal' // Added default state
         };
 
         // Initialize database if needed
@@ -268,13 +279,20 @@
             if (typeof data.temperature !== 'undefined') document.getElementById('temperature').textContent = data.temperature.toFixed(1);
             if (typeof data.humidity !== 'undefined') document.getElementById('humidity').textContent = data.humidity.toFixed(0);
             if (typeof data.distance !== 'undefined') document.getElementById('distance').textContent = data.distance.toFixed(1);
-            if (typeof data.servo_position !== 'undefined') document.getElementById('servo').textContent = data.servo_position;
+            if (typeof data.servo_position !== 'undefined') {
+                document.getElementById('servo').textContent = data.servo_position;
+                // Update the visual servo arm rotation
+                document.getElementById('servo-arm').style.transform = `rotate(${data.servo_position}deg)`;
+            }
             
             if (typeof data.object_detected !== 'undefined') {
                 document.getElementById('object').textContent = data.object_detected ? 'Yes' : 'No';
             }
             
             if (typeof data.light_level !== 'undefined') document.getElementById('light-level').textContent = data.light_level;
+            
+            // Update system state
+            document.getElementById('system-state').textContent = data.state || 'Normal';
             
             document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
         }
